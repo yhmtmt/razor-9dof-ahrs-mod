@@ -20,6 +20,15 @@ void output_angles()
   }
 }
 
+void output_full()
+{
+  output_angles();
+  if (output_format == OUTPUT__FORMAT_BINARY)
+     output_sensors_binary();
+  else if (output_format == OUTPUT__FORMAT_TEXT)
+     output_sensors_text('C'); 
+}
+
 void output_calibration(int calibration_sensor)
 {
   if (calibration_sensor == 0)  // Accelerometer

@@ -158,7 +158,7 @@
 /*****************************************************************/
 // Select your hardware here by uncommenting one line!
 //#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
-//#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
+#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724" (HMC5883L magnetometer)
@@ -180,6 +180,7 @@
 #define OUTPUT__MODE_SENSORS_CALIB 2 // Outputs calibrated sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_RAW 3 // Outputs raw (uncalibrated) sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_BOTH 4 // Outputs calibrated AND raw sensor values for all 9 axes
+#define OUTPUT__MODE_FULL 5 // Outputs both calibrated sensor values and angles
 // Output format definitions (do not change)
 #define OUTPUT__FORMAT_TEXT 0 // Outputs data as text
 #define OUTPUT__FORMAT_BINARY 1 // Outputs data as binary float
@@ -213,12 +214,12 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define ACCEL_X_MIN ((float) -250)
-#define ACCEL_X_MAX ((float) 250)
-#define ACCEL_Y_MIN ((float) -250)
-#define ACCEL_Y_MAX ((float) 250)
-#define ACCEL_Z_MIN ((float) -250)
-#define ACCEL_Z_MAX ((float) 250)
+#define ACCEL_X_MIN ((float) -270)
+#define ACCEL_X_MAX ((float) 243)
+#define ACCEL_Y_MIN ((float) -269)
+#define ACCEL_Y_MAX ((float) 242)
+#define ACCEL_Z_MIN ((float) -271)
+#define ACCEL_Z_MAX ((float) 242)
 
 // Magnetometer (standard calibration mode)
 // "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
@@ -231,15 +232,15 @@ boolean output_errors = false;  // true or false
 
 // Magnetometer (extended calibration mode)
 // Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {0, 0, 0};
-//const float magn_ellipsoid_transform[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+#define CALIBRATION__MAGN_USE_EXTENDED true
+const float magn_ellipsoid_center[3] = {98.7445, -63.6068, 222.695};
+const float magn_ellipsoid_transform[3][3] = {{0.888665, 0.0309743, 0.0679935}, {0.0309743, 0.951819, 0.0723105}, {0.0679935, 0.0723105, 0.748122}};
 
 // Gyroscope
 // "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
-#define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
+#define GYRO_AVERAGE_OFFSET_X ((float) -67.63)
+#define GYRO_AVERAGE_OFFSET_Y ((float) -9.22)
+#define GYRO_AVERAGE_OFFSET_Z ((float) 21.71)
 
 /*
 // Calibration example:
@@ -599,6 +600,14 @@ void loop()
             Serial.print(num_magn_errors); Serial.print(",");
             Serial.println(num_gyro_errors);
           }
+        }else if(output_param == 'f')
+        {
+          output_mode = OUTPUT__MODE_FULL;
+          char format_param = readChar();
+          if (format_param == 't') // Output values as _t_text
+            output_format = OUTPUT__FORMAT_TEXT;
+          else if (format_param == 'b') // Output values in _b_inary format
+            output_format = OUTPUT__FORMAT_BINARY;
         }
       }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
@@ -631,7 +640,7 @@ void loop()
       check_reset_calibration_session();  // Check if this session needs a reset
       if (output_stream_on || output_single_on) output_calibration(curr_calibration_sensor);
     }
-    else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
+    else if (output_mode == OUTPUT__MODE_ANGLES || output_mode == OUTPUT__MODE_FULL)  // Output angles
     {
       // Apply sensor calibration
       compensate_sensor_errors();
@@ -643,7 +652,12 @@ void loop()
       Drift_correction();
       Euler_angles();
       
-      if (output_stream_on || output_single_on) output_angles();
+      if (output_stream_on || output_single_on){ 
+        if(output_mode == OUTPUT__MODE_ANGLES)
+          output_angles();
+        else if(output_mode == OUTPUT__MODE_FULL)
+          output_full();
+      }
     }
     else  // Output sensor values
     {      
